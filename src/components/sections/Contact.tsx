@@ -31,7 +31,7 @@ export function Contact({ emailConfigured }: ContactProps) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [unconfiguredHint, setUnconfiguredHint] = useState(
-    emailConfigured === false,
+    emailConfigured === false, // Web3Forms is configured by default
   );
 
   const mailtoHref = useMemo(() => {

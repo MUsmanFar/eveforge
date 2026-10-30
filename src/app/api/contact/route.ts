@@ -1,5 +1,4 @@
 import { services } from "@/data/services";
-import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
 type ContactPayload = {
@@ -7,19 +6,23 @@ type ContactPayload = {
   email?: unknown;
   company?: unknown;
   service?: unknown;
-  budget?: unknown;
   message?: unknown;
   website?: unknown;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Web3Forms access key — overridable via WEB3FORMS_ACCESS_KEY. */
+const WEB3FORMS_ACCESS_KEY =
+  process.env.WEB3FORMS_ACCESS_KEY ||
+  "9d3cc1e7-4dc2-4c8c-9c7f-2b461b06750f";
+
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
 function isConfigured() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.CONTACT_FROM_EMAIL);
+  return Boolean(WEB3FORMS_ACCESS_KEY);
 }
 
 export async function POST(request: Request) {
@@ -35,7 +38,10 @@ export async function POST(request: Request) {
   }
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return NextResponse.json({ ok: false, error: "Invalid request body." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Invalid request body." },
+      { status: 400 },
+    );
   }
 
   // Honeypot — silently succeed for bots
@@ -48,11 +54,18 @@ export async function POST(request: Request) {
   const email = asTrimmedString(body.email);
   const company = asTrimmedString(body.company);
   const service = asTrimmedString(body.service);
-  const budget = asTrimmedString(body.budget);
   const message = asTrimmedString(body.message);
 
-  if (fullName.length > 120 || email.length > 254 || company.length > 160 || message.length > 5000) {
-    return NextResponse.json({ ok: false, error: "One or more fields exceed the allowed length." }, { status: 400 });
+  if (
+    fullName.length > 120 ||
+    email.length > 254 ||
+    company.length > 160 ||
+    message.length > 5000
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "One or more fields exceed the allowed length." },
+      { status: 400 },
+    );
   }
 
   if (!fullName || fullName.length < 2) {
@@ -69,7 +82,10 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!services.some((item) => item.title === service) && service !== "Not sure / Multiple") {
+  if (
+    !services.some((item) => item.title === service) &&
+    service !== "Not sure / Multiple"
+  ) {
     return NextResponse.json(
       { ok: false, error: "Please select a service." },
       { status: 400 },
@@ -78,54 +94,58 @@ export async function POST(request: Request) {
 
   if (!message || message.length < 10) {
     return NextResponse.json(
-      { ok: false, error: "Please include a short message (at least 10 characters)." },
+      {
+        ok: false,
+        error:
+          "Please include a short message (at least 10 characters).",
+      },
       { status: 400 },
     );
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.CONTACT_FROM_EMAIL;
-  const toEmail = process.env.CONTACT_TO_EMAIL || "everforge9@gmail.com";
-
-  if (!apiKey || !fromEmail) {
+  if (!WEB3FORMS_ACCESS_KEY) {
     return NextResponse.json(
       {
         ok: false,
         unconfigured: true,
         error:
-          "Contact form email delivery is not configured. Please email everforge9@gmail.com directly.",
+          "Contact form is not configured. Please email everforge9@gmail.com directly.",
       },
       { status: 503 },
     );
   }
 
   try {
-    const resend = new Resend(apiKey);
-
-    const { error } = await resend.emails.send({
-      from: fromEmail,
-      to: toEmail,
-      replyTo: email,
-      subject: `Everforge inquiry — ${service} — ${fullName}`,
-      text: [
-        `New contact form submission`,
-        ``,
-        `Name: ${fullName}`,
-        `Email: ${email}`,
-        `Company: ${company || "—"}`,
-        `Service: ${service}`,
-        `Budget: ${budget || "—"}`,
-        ``,
-        `Message:`,
+    const response = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_ACCESS_KEY,
+        subject: `Everforge inquiry — ${service} — ${fullName}`,
+        from_name: "Everforge Website",
+        name: fullName,
+        email,
+        company: company || "—",
+        service,
         message,
-      ].join("\n"),
+        replyto: email,
+      }),
     });
 
-    if (error) {
+    const data = (await response.json()) as {
+      success?: boolean;
+      message?: string;
+    };
+
+    if (!response.ok || !data.success) {
       return NextResponse.json(
         {
           ok: false,
           error:
+            data.message ||
             "We could not send your message right now. Please email everforge9@gmail.com.",
         },
         { status: 502 },
@@ -145,10 +165,10 @@ export async function POST(request: Request) {
   }
 }
 
-// Optional GET helps confirm the route exists during setup
 export async function GET() {
   return NextResponse.json({
     ok: true,
     configured: isConfigured(),
+    provider: "web3forms",
   });
 }

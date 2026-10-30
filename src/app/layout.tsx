@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { Space_Grotesk } from "next/font/google";
 import { siteConfig } from "@/data/site";
+import { getSiteUrl } from "@/lib/site-url";
 import { SiteShell } from "@/components/layout/SiteShell";
 import "./globals.css";
 
@@ -17,12 +18,10 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  // Only set metadataBase when a real production URL is configured —
-  // avoids leaking localhost into social previews.
-  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+  metadataBase: new URL(siteUrl),
   title: {
     default: siteConfig.siteName,
     template: `%s | ${siteConfig.name}`,
@@ -46,7 +45,7 @@ export const metadata: Metadata = {
     siteName: siteConfig.siteName,
     title: siteConfig.siteName,
     description: siteConfig.description,
-    // Intentionally omit `url` so the preview does not surface a domain here
+    // Intentionally omit `url` so the social card title area stays clean
     images: [
       {
         url: "/og-image.jpg",
@@ -74,11 +73,9 @@ export const metadata: Metadata = {
     shortcut: ["/fav-icon.png"],
     apple: [{ url: "/assets/brand/apple-touch-icon.png", sizes: "180x180" }],
   },
-  alternates: siteUrl
-    ? {
-        canonical: siteUrl,
-      }
-    : undefined,
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 export const viewport: Viewport = {
@@ -96,7 +93,7 @@ const organizationSchema = {
   description: siteConfig.description,
   email: siteConfig.email,
   slogan: siteConfig.tagline,
-  ...(siteUrl ? { url: siteUrl } : {}),
+  url: siteUrl,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

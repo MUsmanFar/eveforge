@@ -1,26 +1,26 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "";
-
-function abs(path: string): string {
-  if (!siteUrl) return path;
-  return `${siteUrl}${path}`;
-}
+import { getSiteUrl } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const siteUrl = getSiteUrl();
+  const lastModified = new Date("2026-10-30");
+
   return [
     {
-      url: abs("/"),
+      url: `${siteUrl}/`,
+      lastModified,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: abs("/privacy"),
+      url: `${siteUrl}/privacy`,
+      lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: abs("/terms"),
+      url: `${siteUrl}/terms`,
+      lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
