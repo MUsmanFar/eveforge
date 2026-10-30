@@ -65,14 +65,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  icons: {
-    icon: [
-      { url: "/fav-icon.png", type: "image/png", sizes: "any" },
-      { url: "/assets/brand/icon-e.png", type: "image/png", sizes: "512x512" },
-    ],
-    shortcut: ["/fav-icon.png"],
-    apple: [{ url: "/assets/brand/apple-touch-icon.png", sizes: "180x180" }],
-  },
+  // Icons: app/favicon.ico, app/icon.png, app/apple-icon.png (file conventions)
   alternates: {
     canonical: siteUrl,
   },
